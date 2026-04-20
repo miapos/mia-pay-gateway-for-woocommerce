@@ -51,6 +51,7 @@ This plugin adds MIA POS as a payment method to your WooCommerce store. MIA POS 
 
 - **Test Mode**: Enable for testing payments
 - **Payment Type**: Choose between QR or RTP payment methods
+- **Direct Redirect**: When enabled and Payment Type is QR, mobile users are automatically redirected to the banking app when the checkout page opens, without needing to tap a button manually. The page continues polling payment status in the background and redirects to the success/fail URL upon completion.
 - **Language**: Select default payment page language
 - **Title**: Payment method title displayed to customers
 - **Description**: Payment method description displayed to customers
