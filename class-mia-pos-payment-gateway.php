@@ -21,6 +21,9 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
     public static $log = false;
 
     protected $debug;
+    // The "Test mode" setting (default: yes) is not wired to anything; kept false so live shops
+    // that never unticked it do not suddenly show a test-mode notice at checkout.
+    protected $testmode = false;
     protected $merchant_id, $secret_key, $terminal_id, $base_url;
     protected $payment_type, $language, $direct_redirect;
     protected $completed_order_status, $failed_order_status;
@@ -47,6 +50,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
         $this->id = self::MIA_POS_MOD_ID;
         $this->icon = apply_filters('woocommerce_mia_pos_icon', MIA_POS_PLUGIN_URL . 'assets/img/mia-pos-logo.png');
         $this->has_fields = false;
+        $this->order_button_text = __('Pay with MIA POS', 'mia-pos-payment-gateway-for-woocommerce');
         $this->method_title = self::MIA_POS_MOD_TITLE;
         $this->method_description = self::MIA_POS_MOD_DESC;
 
@@ -140,7 +144,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
                 'title' => __('API Base URL', 'mia-pos-payment-gateway-for-woocommerce'),
                 'type' => 'text',
                 'description' => __('Enter MIA POS API base URL.', 'mia-pos-payment-gateway-for-woocommerce'),
-                'default' => 'https://ecomm.mia-pos.md',
+                'default' => '',
                 'desc_tip' => true,
             ),
             'payment_type' => array(
@@ -257,7 +261,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
             require_once MIA_POS_PLUGIN_DIR . 'includes/mia-pos-sdk/src/MiaPosSdk.php';
 
             // Validate required settings
-            if (empty($this->merchant_id) || empty($this->secret_key) || empty($this->terminal_id)) {
+            if (empty($this->merchant_id) || empty($this->secret_key) || empty($this->terminal_id) || empty($this->base_url)) {
                 throw new Exception(__('MIA POS Payment Gateway is not properly configured.', 'mia-pos-payment-gateway-for-woocommerce'));
             }
 
@@ -485,7 +489,8 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
     }
 
     /**
-     * Output payment fields and payment button
+     * Output payment fields. Payment starts from WooCommerce's own place-order button
+     * (labelled via order_button_text), so the form itself has no button.
      */
     public function payment_fields()
     {
@@ -494,23 +499,15 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
             echo wpautop(wptexturize($this->description));
         }
 
-        // Add payment button
-        ?>
-        <div class="mia-pos-payment-form">
-            <?php if ($this->testmode): ?>
+        if ($this->testmode) {
+            ?>
+            <div class="mia-pos-payment-form">
                 <p class="mia-pos-test-mode-notice">
                     <?php _e('TEST MODE ENABLED', 'mia-pos-payment-gateway-for-woocommerce'); ?>
                 </p>
-            <?php endif; ?>
-
-            <button type="button" class="mia-pos-payment-button">
-                <img src="<?php echo MIA_POS_PLUGIN_URL . 'assets/img/mia-pos-logo.png'; ?>"
-                     alt="MIA POS"
-                     class="mia-pos-payment-icon"/>
-                <?php _e('Pay with MIA POS', 'mia-pos-payment-gateway-for-woocommerce'); ?>
-            </button>
-        </div>
-        <?php
+            </div>
+            <?php
+        }
     }
 
     /**
@@ -638,6 +635,8 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
 
     private function payment_pending($order, $pay_id, $state, $source)
     {
+        // Callers pass the whole status response; the note needs only its status.
+        $state = is_array($state) ? ($state['status'] ?? '') : $state;
         $this->log('MIA POS payment is not final state - payment_id: ' . $pay_id . ', order_id: ' . $order->get_id() . '. state: ' . $state);
         $order_note = sprintf(__('MIA POS payment (%1$s) is not final. Received  payment status (%2$s), source (%3$s)', 'mia-pos-payment-gateway'), $pay_id, $state, $source);
         $order->add_order_note($order_note);
@@ -655,7 +654,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
         $order->add_order_note($tx_note);
         $newOrderStatus = $this->failed_order_status != 'default' ? $this->failed_order_status : 'failed';
 
-        if ($order->has_status('$newOrderStatus')) {
+        if ($order->has_status($newOrderStatus)) {
             $order_note = sprintf(__('MIA POS payment (%1$s) failed. Received  payment status (%2$s), source (%3$s)', 'mia-pos-payment-gateway'), $pay_id, $state, $source);
             $order->add_order_note($order_note);
             $this->log($order_note, 'notice');
