@@ -367,10 +367,15 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
                 )
             );
 
-            wc_add_notice(
-                __('Payment error:', 'mia-pos-payment-gateway-for-woocommerce') . ' ' . $error_message,
-                'error'
-            );
+            $notice = __('Payment error:', 'mia-pos-payment-gateway-for-woocommerce') . ' ' . $error_message;
+
+            // The block checkout (Store API) discards notices and shows a generic error;
+            // only an exception carries the message to the buyer.
+            if (defined('REST_REQUEST') && REST_REQUEST) {
+                throw new Exception($notice);
+            }
+
+            wc_add_notice($notice, 'error');
 
             return [
                 'result' => 'fail',
