@@ -51,6 +51,7 @@ Acest plugin adaugă MIA POS ca metodă de plată în magazinul dvs. WooCommerce
 
 - **Mod de testare**: Activați pentru testarea plăților
 - **Tip de plată**: Alegeți între metodele de plată QR sau RTP
+- **Redirect Direct**: Când este activat și tipul de plată este QR, utilizatorii mobili sunt redirecționați automat către aplicația bancară la deschiderea paginii de checkout, fără a fi necesară apăsarea manuală a unui buton. Pagina continuă să verifice statusul plății în fundal și redirecționează către URL-ul de succes/eșec la finalizare.
 - **Limbă**: Selectați limba implicită a paginii de plată
 - **Titlu**: Titlul metodei de plată afișat clienților
 - **Descriere**: Descrierea metodei de plată afișată clienților

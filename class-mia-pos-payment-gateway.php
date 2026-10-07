@@ -22,7 +22,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
 
     protected $debug;
     protected $merchant_id, $secret_key, $terminal_id, $base_url;
-    protected $payment_type, $language;
+    protected $payment_type, $language, $direct_redirect;
     protected $completed_order_status, $failed_order_status;
     protected $mia_pos_access_token = 'mia_pos_access_token';
     protected $mia_pos_refresh_token = 'mia_pos_refresh_token';
@@ -67,6 +67,7 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
         $this->base_url = $this->get_option('base_url');
         $this->payment_type = $this->get_option('payment_type');
         $this->language = $this->get_option('language');
+        $this->direct_redirect = $this->get_option('direct_redirect');
 
         $this->completed_order_status = $this->get_option('completed_order_status');
         $this->failed_order_status = $this->get_option('failed_order_status');
@@ -151,6 +152,13 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
                     'qr' => __('QR Payment', 'mia-pos-payment-gateway-for-woocommerce'),
                     'rtp' => __('Request to Pay', 'mia-pos-payment-gateway-for-woocommerce'),
                 ),
+            ),
+            'direct_redirect' => array(
+                'title' => __('Direct Redirect', 'mia-pos-payment-gateway-for-woocommerce'),
+                'type' => 'checkbox',
+                'label' => __('Automatically open banking app on mobile (QR only)', 'mia-pos-payment-gateway-for-woocommerce'),
+                'default' => 'no',
+                'description' => __('If enabled, mobile users will be automatically redirected to the banking app when the checkout page opens.', 'mia-pos-payment-gateway-for-woocommerce'),
             ),
             'language' => array(
                 'title' => __('Language', 'mia-pos-payment-gateway-for-woocommerce'),
@@ -285,7 +293,8 @@ class WC_MIA_POS_Payment_Gateway extends WC_Payment_Gateway
                 'failUrl' => add_query_arg([
                     'nonce' => $nonce,
                     'orderId' => $order->get_id()
-                ], home_url("/wc-api/{$this->route_return_fail}"))
+                ], home_url("/wc-api/{$this->route_return_fail}")),
+                'directRedirect' => $this->payment_type === 'qr' && $this->direct_redirect === 'yes',
             ];
 
 
